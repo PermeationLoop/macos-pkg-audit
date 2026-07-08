@@ -86,7 +86,7 @@ jobs:
         run: |
           mkdir -p output
           docker run --rm \
-            -v "$(pwd)/${{ steps.get-pkg.outputs.path }}:/input/pkg:ro" \
+            -v "$(pwd)/${{ steps.get-pkg.outputs.path }}:/input/input.pkg:ro" \
             -v "$(pwd)/output:/output" \
             -e ANTHROPIC_API_KEY \
             -e OPENAI_API_KEY \

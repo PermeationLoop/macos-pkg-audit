@@ -6,14 +6,14 @@
 #
 #   # Standard Anthropic API
 #   docker run --rm \
-#     -v /path/to/target.pkg:/input/pkg:ro \
+#     -v /path/to/target.pkg:/input/input.pkg:ro \
 #     -v $(pwd)/output:/output \
 #     -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
 #     pkg-audit
 #
 #   # Custom LLM endpoint (OpenRouter, local proxy, etc.)
 #   docker run --rm \
-#     -v /path/to/target.pkg:/input/pkg:ro \
+#     -v /path/to/target.pkg:/input/input.pkg:ro \
 #     -v $(pwd)/output:/output \
 #     -e ANTHROPIC_API_KEY=$OPENROUTER_API_KEY \
 #     -e ANTHROPIC_BASE_URL=https://openrouter.ai/api/v1/anthropic \
@@ -21,7 +21,7 @@
 #
 #   # OpenRouter (OpenAI-compatible mode)
 #   docker run --rm \
-#     -v /path/to/target.pkg:/input/pkg:ro \
+#     -v /path/to/target.pkg:/input/input.pkg:ro \
 #     -v $(pwd)/output:/output \
 #     -e OPENAI_API_KEY=$OPENROUTER_API_KEY \
 #     -e OPENAI_BASE_URL=https://openrouter.ai/api/v1 \
@@ -37,7 +37,7 @@
 
 set -euo pipefail
 
-PKG_PATH="${1:-/input/pkg.pkg}"
+PKG_PATH="${1:-/input/input.pkg}"
 OUTPUT_DIR="${2:-/output}"
 WORK_DIR="${3:-/tmp/pkg-audit}"
 
@@ -55,7 +55,7 @@ echo ""
 
 if [ ! -f "${PKG_PATH}" ]; then
     echo "ERROR: Package not found at ${PKG_PATH}"
-    echo "Usage: docker run --rm -v /path/to/pkg:/input/pkg:ro -v \$PWD/output:/output -e ANTHROPIC_API_KEY=... pkg-audit"
+    echo "Usage: docker run --rm -v /path/to/pkg:/input/input.pkg:ro -v \$PWD/output:/output -e ANTHROPIC_API_KEY=... pkg-audit"
     exit 1
 fi
 
