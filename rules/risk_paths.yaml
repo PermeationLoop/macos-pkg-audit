@@ -1,0 +1,168 @@
+# File path risk classification for macOS pkg installer payloads.
+# Risk levels: critical, high, medium, low, info
+
+paths:
+  # --- CRITICAL: Core OS integrity ---
+  - prefix: "/System/"
+    risk: critical
+    reason: "Modifies SIP-protected system files — indicates tampering with OS integrity"
+    
+  - prefix: "/System/Library/"
+    risk: critical
+    reason: "Modifies core system libraries or frameworks"
+
+  # --- HIGH: Persistence and privilege ---
+  - prefix: "/Library/LaunchDaemons/"
+    risk: high
+    reason: "Installs a system-wide LaunchDaemon — persists across reboots with root privileges"
+    
+  - prefix: "/Library/PrivilegedHelperTools/"
+    risk: high
+    reason: "Installs a privileged helper tool — runs with elevated (root) privileges"
+    
+  - prefix: "/Library/LaunchAgents/"
+    risk: medium
+    reason: "Installs a user-level LaunchAgent — persists across reboots"
+
+  - prefix: "~/Library/LaunchAgents/"
+    risk: medium
+    reason: "Installs a per-user LaunchAgent — persists across reboots for current user"
+
+  - prefix: "/Library/Extensions/"
+    risk: high
+    reason: "Installs a kernel extension (KEXT) — runs in kernel space, deprecated but still dangerous"
+
+  - prefix: "/Library/SystemExtensions/"
+    risk: high
+    reason: "Installs a system extension — runs with elevated privileges"
+
+  # --- HIGH: Security policy modifications ---
+  - prefix: "/etc/"
+    risk: high
+    reason: "Modifies system configuration in /etc"
+    
+  - prefix: "/etc/sudoers"
+    risk: critical
+    reason: "Modifies sudoers — grants or restricts sudo access"
+    
+  - prefix: "/etc/sudoers.d/"
+    risk: critical
+    reason: "Adds sudoers configuration — can grant passwordless sudo"
+
+  - prefix: "/var/db/"
+    risk: high
+    reason: "Modifies system databases"
+
+  # --- MEDIUM: Application data and support ---
+  - prefix: "/Library/Application Support/"
+    risk: medium
+    reason: "Installs application support files (system-wide)"
+
+  - prefix: "/Library/Caches/"
+    risk: low
+    reason: "Installs to system cache directory"
+
+  - prefix: "/Library/Preferences/"
+    risk: medium
+    reason: "Installs system-wide preference files"
+
+  # --- MEDIUM: User home directory ---
+  - prefix: "~/Library/"
+    risk: low
+    reason: "Installs to user Library (expected for user applications)"
+
+  - prefix: "~/.ssh/"
+    risk: critical
+    reason: "Modifies SSH configuration — potential backdoor"
+    
+  - prefix: "~/.bash"
+    risk: high
+    reason: "Modifies shell profile/rc files — can execute on shell start"
+
+  - prefix: "~/.zsh"
+    risk: high
+    reason: "Modifies shell profile/rc files — can execute on shell start"
+
+  - prefix: "~/.config/"
+    risk: medium
+    reason: "Modifies user configuration files"
+
+  # --- LOW: Expected install locations ---
+  - prefix: "/Applications/"
+    risk: low
+    reason: "Installs to Applications folder (standard app location)"
+    
+  - prefix: "/Applications/Utilities/"
+    risk: low
+    reason: "Installs to Utilities folder (standard location for helper tools)"
+
+  - prefix: "/usr/local/bin/"
+    risk: low
+    reason: "Installs CLI tool to /usr/local/bin (standard location)"
+
+  - prefix: "/usr/local/lib/"
+    risk: low
+    reason: "Installs library to /usr/local/lib (standard location)"
+
+  - prefix: "/opt/"
+    risk: low
+    reason: "Installs to /opt (standard location for optional packages)"
+
+  - prefix: "/private/tmp/"
+    risk: high
+    reason: "Installs to /tmp during installation — often used as staging for malware"
+
+  - prefix: "/tmp/"
+    risk: high
+    reason: "Installs to /tmp during installation — temporary directory abuse risk"
+
+  # --- INFO: Documentation and resources ---
+  - prefix: "/Library/Documentation/"
+    risk: info
+    reason: "Installs documentation files"
+
+  - prefix: "/Library/Fonts/"
+    risk: info
+    reason: "Installs system fonts"
+
+  # File types of concern
+file_types:
+  - extension: ".dylib"
+    risk: medium
+    reason: "Dynamic library — can be loaded into other processes"
+    
+  - extension: ".kext"
+    risk: high
+    reason: "Kernel extension — runs in kernel space"
+
+  - extension: ".systemextension"
+    risk: high
+    reason: "System extension — runs with elevated privileges"
+
+  - extension: ".plist"
+    risk: medium
+    reason: "Property list — often used for LaunchDaemon/Agent configuration"
+
+  - extension: ".sh"
+    risk: medium
+    reason: "Shell script — inspect for malicious commands"
+
+  - extension: ".py"
+    risk: medium
+    reason: "Python script — inspect for malicious code"
+
+  - extension: ".applescript"
+    risk: medium
+    reason: "AppleScript — can automate system interactions"
+
+  - extension: ".pkg"
+    risk: medium
+    reason: "Nested pkg installer — requires recursive audit"
+
+  - extension: ".mpkg"
+    risk: medium
+    reason: "Nested meta-package installer — requires recursive audit"
+
+  - extension: ".mobileconfig"
+    risk: high
+    reason: "Configuration profile — can change system settings and install certificates"

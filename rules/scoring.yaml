@@ -1,0 +1,46 @@
+# Risk scoring configuration for macOS pkg security audit.
+# Defines how individual findings contribute to the composite risk score.
+
+# Weights for each analysis dimension (must sum to 100)
+weights:
+  signature_trust: 25     # Code signing, notarization, certificate chain
+  payload_paths: 25       # Where files are installed
+  script_danger: 30       # Malicious/suspicious script content
+  binary_risk: 10         # Suspicious binary properties
+  file_permissions: 10    # Dangerous permissions (setuid, world-writable)
+
+# Severity thresholds for the overall risk score
+severity_thresholds:
+  low_max: 25
+  medium_max: 50
+  high_max: 75
+  # 76+ = critical
+
+# Per-finding severity contributions to the sub-score
+finding_severity_weights:
+  critical: 25
+  high: 15
+  medium: 5
+  low: 1
+
+# Signature dimension scoring
+signature_scoring:
+  unsigned: 25
+  revoked: 25
+  expired: 15
+  self_signed: 20
+  adhoc_signed: 15
+  not_notarized: 10
+  unknown_ca: 15
+  valid: 0
+
+# Maximum findings per severity to prevent score inflation
+max_findings_per_severity:
+  critical: 5
+  high: 10
+  medium: 20
+  low: 50
+
+# Score normalization: cap the sub-score at the dimension weight
+# and normalize based on max possible findings
+normalize: true

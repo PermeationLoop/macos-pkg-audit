@@ -1,0 +1,210 @@
+# Suspicious shell command patterns for macOS pkg installer script analysis.
+# Patterns are regex applied to each line of shell scripts.
+# Severity: critical, high, medium, low
+
+patterns:
+  # --- CRITICAL: Remote Code Execution ---
+  - id: RCE_CURL_PIPE_SHELL
+    severity: critical
+    pattern: '(curl|wget|fetch)\s+.*\|.*(sh|bash|zsh|python|perl|ruby)'
+    description: "Downloads and immediately executes remote code via pipe"
+
+  - id: RCE_CURL_PIPE_EVAL
+    severity: critical
+    pattern: '(curl|wget)\s+.*\|\s*(eval|exec)\b'
+    description: "Downloads remote content and passes to eval/exec"
+
+  - id: RCE_BASE64_DECODE_EXEC
+    severity: critical
+    pattern: '(base64\s+(-d|-D|--decode)|openssl\s+base64\s+-d).*\||.*\|\s*(sh|bash|eval|exec)'
+    description: "Decodes base64 content and executes it"
+
+  - id: RCE_PYTHON_REMOTE
+    severity: critical
+    pattern: 'python\d*\s+-c\s+.*(urllib|requests|urlopen|subprocess)'
+    description: "Python one-liner fetching/executing remote content"
+
+  - id: RCE_DEV_TCP
+    severity: critical
+    pattern: '/dev/tcp/'
+    description: "Direct TCP socket access via bash /dev/tcp (often used for reverse shells)"
+
+  # --- CRITICAL: System Security Downgrade ---
+  - id: SEC_DISABLE_GATEKEEPER
+    severity: critical
+    pattern: 'spctl\s+--master-disable'
+    description: "Disables Gatekeeper system-wide"
+
+  - id: SEC_DISABLE_SIP_HINT
+    severity: critical
+    pattern: 'csrutil\s+(disable|clear)'
+    description: "Attempts to disable System Integrity Protection (SIP)"
+
+  - id: SEC_MODIFY_BOOT_ARGS
+    severity: critical
+    pattern: 'nvram\s+boot-args'
+    description: "Modifies kernel boot arguments"
+
+  - id: SEC_REMOVE_QUARANTINE_ALL
+    severity: high
+    pattern: 'xattr\s+-[dr].*com\.apple\.quarantine\b.*[/*]'
+    description: "Mass-removes quarantine attributes from files"
+
+  # --- HIGH: Privilege Escalation ---
+  - id: PRIV_SUDO
+    severity: high
+    pattern: '\bsudo\b'
+    description: "Uses sudo to elevate privileges"
+
+  - id: PRIV_OSASCRIPT_ADMIN
+    severity: high
+    pattern: 'osascript\s+-e\s+.*(administrator|with\s+administrator\s+privileges|do\s+shell\s+script.*password)'
+    description: "Uses AppleScript to execute commands with admin privileges"
+
+  - id: PRIV_AUTHTOOL
+    severity: high
+    pattern: 'security\s+execute-with-privileges|authorizationexecutewithprivileges'
+    description: "Requests privileged execution via security framework"
+
+  - id: PRIV_ROOT_OWNERSHIP
+    severity: medium
+    pattern: 'chown\s+(-R\s+)?root:'
+    description: "Changes file ownership to root"
+
+  # --- HIGH: Persistence Mechanisms ---
+  - id: PERSIST_LAUNCHCTL_LOAD
+    severity: high
+    pattern: 'launchctl\s+(load|bootstrap|enable)\s'
+    description: "Loads/registers a LaunchDaemon or LaunchAgent"
+
+  - id: PERSIST_CRON
+    severity: high
+    pattern: 'crontab\s+'
+    description: "Modifies crontab for scheduled execution"
+
+  - id: PERSIST_LOGIN_ITEM
+    severity: high
+    pattern: '(defaults\s+write\s+loginwindow.*AutoLaunched|osascript.*make.*login\s+item|sfltool\s+add-item)'
+    description: "Adds a login item for persistence"
+
+  - id: PERSIST_PROFILE_INSTALL
+    severity: high
+    pattern: 'profiles\s+(-I|--install)\s'
+    description: "Installs a configuration profile"
+
+  - id: PERSIST_SYSTEMD_STYLE
+    severity: medium
+    pattern: 'cp\s+.*\.plist\s+(/Library/LaunchDaemons|/Library/LaunchAgents|~/Library/LaunchAgents)'
+    description: "Copies plist to LaunchDaemon/Agent directory"
+
+  # --- HIGH: Data Exfiltration ---
+  - id: EXFIL_CURL_POST
+    severity: high
+    pattern: '(curl|wget)\s+.*(POST|PUT|--data|--data-binary|--upload-file)\s+.*https?://'
+    description: "Uploads data to a remote server via HTTP"
+
+  - id: EXFIL_NC_CONNECT
+    severity: high
+    pattern: 'n[ce]\s+.*-e\s'
+    description: "Netcat with execute flag (often used for reverse shells)"
+
+  - id: EXFIL_OPENSSL_S_CLIENT
+    severity: medium
+    pattern: 'openssl\s+s_client\s+-connect'
+    description: "Opens encrypted connection via OpenSSL (potential covert channel)"
+
+  # --- HIGH: Credential Theft ---
+  - id: CRED_KEYCHAIN_DUMP
+    severity: high
+    pattern: 'security\s+(dump-keychain|export|find-generic-password|find-internet-password)'
+    description: "Reads or exports keychain items"
+
+  - id: CRED_KEYCHAIN_ADD
+    severity: medium
+    pattern: 'security\s+add-(generic-password|internet-password)'
+    description: "Adds items to keychain (potential backdoor credential storage)"
+
+  - id: CRED_DSCL_READ
+    severity: medium
+    pattern: 'dscl\s+\.\s+-read\s'
+    description: "Reads directory service data (user information)"
+
+  # --- MEDIUM: Temp Directory Exploitation ---
+  - id: TEMP_FIXED_PATH
+    severity: medium
+    pattern: '/tmp/\w+\b(?!\/\{\{|\$\{|`)'
+    description: "Uses predictable/fixed path in /tmp (potential symlink race)"
+
+  - id: TEMP_MTREE
+    severity: medium
+    pattern: 'mktemp\s+-d\s+/tmp/\w+XXXX'
+    description: "Non-random mktemp pattern in /tmp"
+
+  # --- MEDIUM: Insecure Permissions ---
+  - id: PERM_WORLD_WRITABLE_SYS
+    severity: high
+    pattern: 'chmod\s+(-R\s+)?[0-7]*7[0-7]*\s+(/Library|/System|/usr/local|/etc|/Applications)'
+    description: "Makes system files world-writable"
+
+  - id: PERM_WORLD_WRITABLE
+    severity: medium
+    pattern: 'chmod\s+(-R\s+)?[0-7]?77[0-7]?\s'
+    description: "Sets world-writable permissions broadly"
+
+  - id: PERM_SETUID
+    severity: high
+    pattern: 'chmod\s+[0-7]*[46][0-7]{2}\s+|chmod\s+[ug]\+s'
+    description: "Sets setuid or setgid bit on a file"
+
+  # --- LOW: Deprecated/Problematic Practices ---
+  - id: DEPR_BASH_SHEBANG
+    severity: low
+    pattern: '^#!/bin/bash'
+    description: "Script uses /bin/bash (deprecated on macOS since Catalina)"
+
+  - id: DEPR_PYTHON_SHEBANG
+    severity: low
+    pattern: '^#!/usr/bin/python'
+    description: "Script uses system Python (removed in macOS 12.3+)"
+
+  - id: DEPR_PERL_SHEBANG
+    severity: low
+    pattern: '^#!/usr/bin/perl'
+    description: "Script uses system Perl (deprecated, may be removed)"
+
+  - id: DEPR_RUBY_SHEBANG
+    severity: low
+    pattern: '^#!/usr/bin/ruby'
+    description: "Script uses system Ruby (deprecated, may be removed)"
+
+  # --- LOW: Obfuscation Indicators ---
+  - id: OBFUSC_BASE64_BLOB
+    severity: low
+    pattern: '[A-Za-z0-9+/=]{200,}'
+    description: "Large base64-encoded blob (potential obfuscated payload)"
+
+  - id: OBFUSC_HEX_BLOB
+    severity: low
+    pattern: '(\\\\x[0-9a-fA-F]{2}){20,}'
+    description: "Long hex-encoded string (potential obfuscation)"
+
+  - id: OBFUSC_EVAL
+    severity: medium
+    pattern: '\beval\b\s+'
+    description: "Uses eval to dynamically execute code"
+
+  # --- MEDIUM: Network Activity ---
+  - id: NET_DOWNLOAD_EXECUTABLE
+    severity: high
+    pattern: '(curl|wget).*-[oO]\s+\S+\s+https?://.*(\.(bin|exe|dmg|pkg|app|zip|tar\.gz|dylib|so)|\/(tmp|var\/tmp|private\/tmp))'
+    description: "Downloads an executable/binary file"
+
+  - id: NET_DNS_TUNNEL_HINT
+    severity: medium
+    pattern: '(dig|nslookup|host)\s+.*\|\s*(while|for|read)'
+    description: "DNS queries in a loop (potential DNS tunneling)"
+
+  - id: NET_LISTEN_BIND
+    severity: high
+    pattern: '(nc|ncat)\s+-[lL]'
+    description: "Opens a listening network socket"
