@@ -1,4 +1,4 @@
-name: PKG Security Audit
+name: "PKG Security Audit"
 
 on:
   workflow_dispatch:
@@ -13,32 +13,6 @@ on:
         type: string
       anthropic_base_url:
         description: 'Override Anthropic API base URL (for OpenRouter, proxy, etc.)'
-        required: false
-        type: string
-        default: 'https://api.anthropic.com'
-      openai_base_url:
-        description: 'Override OpenAI API base URL'
-        required: false
-        type: string
-        default: 'https://api.openai.com/v1'
-
-  push:
-    paths:
-      - '**.pkg'
-
-  workflow_call:
-    inputs:
-      pkg_url:
-        description: 'URL to download the .pkg file for auditing'
-        required: false
-        type: string
-      pkg_path:
-        description: 'Path to local .pkg file'
-        required: false
-        type: string
-        default: 'target.pkg'
-      anthropic_base_url:
-        description: 'Override Anthropic API base URL'
         required: false
         type: string
         default: 'https://api.anthropic.com'
