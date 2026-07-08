@@ -91,6 +91,7 @@ For binaries found in the payload:
 3. Classify overall severity: Low (0-25), Medium (26-50), High (51-75), Critical (76-100)
 4. Generate executive summary: 2-3 sentences covering top risks and install recommendation
 5. Call `generate_report` with all findings to produce `report.json` and `report.md`
+   - **output_dir must be `output` (no other path).**
 
 ## Risk Scoring Reference
 

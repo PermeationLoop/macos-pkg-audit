@@ -519,10 +519,24 @@ def generate_report(
         for dim in weights
     }
 
+    # category → dimension fallback mapping
+    _category_to_dim = {
+        "code_signing": "signature_trust",
+        "payload": "payload_paths",
+        "installer_script": "script_danger",
+        "supply_chain": "script_danger",
+        "auto_update": "script_danger",
+        "privilege_escalation": "file_permissions",
+        "binary_analysis": "binary_risk",
+    }
+
     for finding in report["findings"]:
-        dim = finding.get("dimension", "script_danger")
+        dim = finding.get("dimension") or _category_to_dim.get(
+            finding.get("category", ""), "script_danger"
+        )
         if dim in score_breakdown:
-            w = sev_w.get(finding.get("severity", "low"), 1)
+            sev = (finding.get("severity") or "low").lower()
+            w = sev_w.get(sev, 1)
             score_breakdown[dim]["score"] += w
             score_breakdown[dim]["findings"].append(finding)
 
@@ -563,8 +577,8 @@ def generate_report(
     emoji = sev_emoji.get(severity, "\u26aa")
 
     total_f = len(report["findings"])
-    crit = sum(1 for f in report["findings"] if f.get("severity") == "critical")
-    high = sum(1 for f in report["findings"] if f.get("severity") == "high")
+    crit = sum(1 for f in report["findings"] if (f.get("severity") or "").lower() == "critical")
+    high = sum(1 for f in report["findings"] if (f.get("severity") or "").lower() == "high")
 
     md = [
         f"# PKG Security Audit Report",
@@ -600,20 +614,27 @@ def generate_report(
     if not report["findings"]:
         md.append("*No security issues found.*")
     else:
-        for sev in ("critical", "high", "medium", "low"):
-            sf = [f for f in report["findings"] if f.get("severity") == sev]
+        for sev in ("critical", "high", "medium", "low", "info"):
+            sf = [f for f in report["findings"] if (f.get("severity") or "").lower() == sev]
             if not sf:
                 continue
             md.append(f"### {sev.upper()} ({len(sf)})")
             md.append("")
             for finding in sf:
                 rid = finding.get("rule_id", "?")
-                desc = finding.get("description", "No description")
-                md.append(f"- **{rid}**: {desc}")
+                title = finding.get("title") or finding.get("description", "No description")
+                md.append(f"- **{rid}**: {title}")
+                desc = finding.get("description")
+                if desc and desc != title:
+                    md.append(f"  - {desc}")
+                impact = finding.get("impact")
+                if impact:
+                    md.append(f"  - Impact: {impact}")
+                remediation = finding.get("remediation")
+                if remediation:
+                    md.append(f"  - Remediation: {remediation}")
                 if finding.get("location"):
                     md.append(f"  - Location: `{finding['location']}`")
-                if finding.get("detail"):
-                    md.append(f"  - Detail: {finding['detail']}")
                 md.append("")
 
     # ── signature ──
