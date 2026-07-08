@@ -1,15 +1,25 @@
 version: "12"
 
+providers:
+  anthropic-custom:
+    provider: anthropic
+    base_url: "${ANTHROPIC_BASE_URL}"
+    token_key: ANTHROPIC_API_KEY
+  openai-custom:
+    provider: openai
+    base_url: "${OPENAI_BASE_URL}"
+    token_key: OPENAI_API_KEY
+
 models:
   sonnet:
-    provider: anthropic
-    model: claude-sonnet-4-6
+    provider: anthropic-custom
+    model: deepseek-v4-pro
   haiku:
-    provider: anthropic
-    model: claude-haiku-4-5
+    provider: anthropic-custom
+    model: deepseek-v4-pro
   gpt5mini:
-    provider: openai
-    model: gpt-5-mini
+    provider: openai-custom
+    model: deepseek-v4-flash
 
 agents:
   orchestrator:
@@ -64,29 +74,30 @@ agents:
 
   signature-auditor:
     model: gpt5mini
-    description: Inspects pkg code signing, certificate chain, and notarization status
+    description: Inspects pkg code signing via openssl CMS inspection (Linux)
     instruction: |
-      You are a macOS code signing auditor. Your task is to evaluate the
-      trustworthiness of a pkg installer by inspecting its digital signature.
+      You are a pkg signature auditor running on Linux. Your task is to inspect
+      the XAR CMS signature of a pkg installer using the check_signature tool.
 
-      Use the check_signature tool on the package file.
+      The check_signature tool uses openssl to inspect the CMS signature.
+      It CANNOT perform full Apple certificate chain validation or notarization
+      checks — those require macOS.
+
       Analyze the results:
-      - Is the package signed? By whom?
-      - Is the certificate chain valid?
-      - Is it notarized by Apple?
-      - Any revoked or expired certificates?
+      - Is a CMS signature present?
+      - Can the signature content be extracted?
+      - Note that full trust validation requires macOS
 
       Return a structured set of findings. For each issue, provide:
       - severity (critical/high/medium/low)
-      - rule_id (signature_unsigned, signature_revoked, etc.)
+      - rule_id (signature_unsigned, signature_linux_limited, etc.)
       - description
       - dimension: "signature_trust"
-      
+
       Risk guidelines:
-      - Unsigned or revoked: CRITICAL
-      - Expired or self-signed: HIGH
-      - Not notarized: MEDIUM
-      - Valid and notarized: no findings
+      - No CMS signature found: HIGH
+      - CMS signature present but unverifiable: MEDIUM
+      - Note this is a Linux-limited check in findings
     toolsets:
       - type: mcp
         name: pkg-audit
@@ -187,21 +198,20 @@ agents:
 
   binary-inspector:
     model: gpt5mini
-    description: Inspects Mach-O binaries in the payload for suspicious properties
+    description: Inspects binaries in the payload for suspicious properties (Linux)
     instruction: |
-      You are a macOS binary security inspector. Your task is to analyze
-      Mach-O binaries found in the pkg payload for suspicious characteristics.
+      You are a binary security inspector running on Linux. Your task is to
+      analyze binaries found in the pkg payload for suspicious characteristics.
 
       For each binary (executable, dylib, framework) found in the payload:
       1. Use analyze_binary to get file type, architecture, and strings.
       2. Review the extracted strings for:
          - Hardcoded URLs or IPs (esp. non-Apple domains)
-         - References to /System/Library/PrivateFrameworks/ (private API usage)
          - Suspicious file paths (/tmp, /etc, ~/.ssh)
          - Keychain or credential-related strings
          - Command injection patterns
-      3. Review linked libraries for suspicious dependencies.
-      4. On macOS only: check code signature per binary.
+      3. Note that Mach-O-specific analysis (entitlements, code signing per
+         binary, linked libraries) is NOT available on Linux.
 
       Return a structured set of findings. For each issue, provide:
       - severity (critical/high/medium/low)
@@ -211,11 +221,9 @@ agents:
       - dimension: "binary_risk"
 
       Flag as suspicious:
-      - Binaries that download or execute external content
-      - Binaries with hardcoded IPs/domains
-      - Binaries linked against private frameworks
-      - Stripped binaries with no identifiable purpose
-      - Binaries that reference keychain or credential APIs
+      - Binaries with hardcoded IPs/domains in strings
+      - Binaries referencing keychain or credential APIs
+      - Binaries with obfuscated or unusual string patterns
     toolsets:
       - type: mcp
         name: pkg-audit

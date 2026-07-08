@@ -3,11 +3,35 @@
 #
 # Usage:
 #   docker build -t pkg-audit .
+#
+#   # Standard Anthropic API
 #   docker run --rm \
 #     -v /path/to/target.pkg:/input/pkg:ro \
 #     -v $(pwd)/output:/output \
 #     -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
 #     pkg-audit
+#
+#   # Custom LLM endpoint (OpenRouter, local proxy, etc.)
+#   docker run --rm \
+#     -v /path/to/target.pkg:/input/pkg:ro \
+#     -v $(pwd)/output:/output \
+#     -e ANTHROPIC_API_KEY=$OPENROUTER_API_KEY \
+#     -e ANTHROPIC_BASE_URL=https://openrouter.ai/api/v1/anthropic \
+#     pkg-audit
+#
+#   # OpenRouter (OpenAI-compatible mode)
+#   docker run --rm \
+#     -v /path/to/target.pkg:/input/pkg:ro \
+#     -v $(pwd)/output:/output \
+#     -e OPENAI_API_KEY=$OPENROUTER_API_KEY \
+#     -e OPENAI_BASE_URL=https://openrouter.ai/api/v1 \
+#     pkg-audit
+#
+# Environment variables:
+#   ANTHROPIC_API_KEY    Anthropic API key (required for claude models)
+#   ANTHROPIC_BASE_URL   Override Anthropic API endpoint (default: https://api.anthropic.com)
+#   OPENAI_API_KEY       OpenAI API key (required for gpt models)
+#   OPENAI_BASE_URL      Override OpenAI API endpoint (default: https://api.openai.com/v1)
 #
 # Output: ./output/report.json, ./output/report.md
 
@@ -17,14 +41,21 @@ PKG_PATH="${1:-/input/pkg.pkg}"
 OUTPUT_DIR="${2:-/output}"
 WORK_DIR="${3:-/tmp/pkg-audit}"
 
+# Default LLM API endpoints if not overridden
+export ANTHROPIC_BASE_URL="${ANTHROPIC_BASE_URL:-https://api.anthropic.com}"
+export OPENAI_BASE_URL="${OPENAI_BASE_URL:-https://api.openai.com/v1}"
+export TELEMETRY_ENABLED="${TELEMETRY_ENABLED:-false}"
+
 echo "=== PKG Audit Tool v1.0 ==="
-echo "Package: ${PKG_PATH}"
-echo "Output:  ${OUTPUT_DIR}"
-echo "Work:    ${WORK_DIR}"
+echo "Package:       ${PKG_PATH}"
+echo "Output:        ${OUTPUT_DIR}"
+echo "Work:          ${WORK_DIR}"
+echo "LLM Backend:   ${ANTHROPIC_BASE_URL}"
+echo ""
 
 if [ ! -f "${PKG_PATH}" ]; then
     echo "ERROR: Package not found at ${PKG_PATH}"
-    echo "Usage: docker run --rm -v /path/to/pkg:/input/pkg:ro -v \$PWD/output:/output pkg-audit"
+    echo "Usage: docker run --rm -v /path/to/pkg:/input/pkg:ro -v \$PWD/output:/output -e ANTHROPIC_API_KEY=... pkg-audit"
     exit 1
 fi
 
