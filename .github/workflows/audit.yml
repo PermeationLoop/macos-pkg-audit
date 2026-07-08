@@ -15,12 +15,10 @@ on:
         description: 'Override Anthropic API base URL (for OpenRouter, proxy, etc.)'
         required: false
         type: string
-        default: 'https://api.anthropic.com'
       openai_base_url:
         description: 'Override OpenAI API base URL'
         required: false
         type: string
-        default: 'https://api.openai.com/v1'
 
 jobs:
   audit:
@@ -53,19 +51,20 @@ jobs:
 
       - name: Run security audit
         env:
+          # Keep these here to securely expose them to the runner step
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || '' }}
           ANTHROPIC_BASE_URL: ${{ inputs.anthropic_base_url || vars.ANTHROPIC_BASE_URL || 'https://api.anthropic.com' }}
-          OPENAI_BASE_URL: ${{ inputs.openai_base_url || vars.OPENAI_BASE_URL || 'https://api.openai.com/v1' }}
+          OPENAI_BASE_URL: ${{ inputs.openai_base_url || vars.OPENAI_BASE_URL || 'https://openai.com' }}
         run: |
           mkdir -p output
           docker run --rm \
             -v "$(pwd)/${{ steps.get-pkg.outputs.path }}:/input/input.pkg:ro" \
             -v "$(pwd)/output:/output" \
-            -e ANTHROPIC_API_KEY \
-            -e OPENAI_API_KEY \
-            -e ANTHROPIC_BASE_URL \
-            -e OPENAI_BASE_URL \
+            -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+            -e OPENAI_API_KEY="$OPENAI_API_KEY" \
+            -e ANTHROPIC_BASE_URL="$ANTHROPIC_BASE_URL" \
+            -e OPENAI_BASE_URL="$OPENAI_BASE_URL" \
             pkg-audit
 
       - name: Upload report
