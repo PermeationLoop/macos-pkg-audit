@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """MCP server providing tools for macOS pkg security audit.
 
-Runs on Linux (Docker). Uses xar/cpio for extraction, openssl for
+Runs on Linux (Docker). Uses 7z/xar/cpio for extraction, openssl for
 signature inspection, and pure Python for BOM/plist parsing.
 """
 
@@ -61,11 +61,11 @@ def expand_pkg(pkg_path: str, output_dir: str) -> str:
 
     # ── Step 1: extract xar archive ──
     r = subprocess.run(
-        ["xar", "-xf", pkg_path, "-C", output_dir],
+        ["7z", "x", "-txar", pkg_path, f"-o{output_dir}"],
         capture_output=True, text=True,
     )
-    if r.returncode != 0:
-        result["errors"].append(f"xar extract failed: {r.stderr.strip()}")
+    if r.returncode not in (0, 1):
+        result["errors"].append(f"7z extract failed: {r.stderr.strip()} {r.stdout.strip()}")
         return json.dumps(result, indent=2)
 
     # ── Step 2: expand any gzip+cpio archives (Payload, Scripts) ──

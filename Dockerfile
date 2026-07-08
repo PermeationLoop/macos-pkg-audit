@@ -6,7 +6,7 @@ LABEL org.opencontainers.image.version="1.0"
 
 # System dependencies for pkg extraction
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    xar \
+    p7zip-full \
     cpio \
     binutils \
     file \

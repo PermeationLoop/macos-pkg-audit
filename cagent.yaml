@@ -49,9 +49,10 @@ agents:
          and report.md. Inspect the report for completeness and accuracy.
       9. Return a summary of the audit results.
 
-      CRITICAL: Always use the MCP tools available via the 'pkg-audit' server.
-      Do NOT attempt to read files directly — use the provided tools instead.
+      Use the MCP tools available via the 'pkg-audit' server as much as possible.
       All tools return JSON. Parse and analyze the results carefully.
+      But if a tool fails, try to use a workaround or alternative method to continue the audit.
+      And report the error in the final findings.
 
       When spawning sub-agents, be explicit about what they should analyze.
       Provide specific file paths and instructions.
